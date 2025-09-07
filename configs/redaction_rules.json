@@ -1,0 +1,22 @@
+{
+  "healthcare": {
+     "redact": ["EMAIL", "PHONE", "SSN", "ADDRESS", "ID", "PERSON"],
+     "keep": ["DOCTOR", "HOSPITAL", "DIAGNOSIS"]
+  },
+  "education": {
+    "redact": ["EMAIL", "PHONE", "SSN", "ADDRESS"],
+    "keep": ["STUDENT_NAME", "INSTITUTION"]
+  },
+  "finance": {
+    "redact": ["EMAIL", "PHONE", "SSN", "ACCOUNT_NUMBER", "CARD_NUMBER"],
+    "keep": ["BANK_NAME"]
+  },
+  "government": {
+    "redact": ["EMAIL", "PHONE", "SSN", "AADHAAR", "ADDRESS"],
+    "keep": ["CITIZEN_NAME"]
+  },
+  "default": {
+    "redact": ["EMAIL", "PHONE", "SSN"],
+    "keep": []
+  }
+}
