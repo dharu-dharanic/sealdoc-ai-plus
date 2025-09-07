@@ -11,7 +11,6 @@ REDACTED_FOLDER = "redacted"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(REDACTED_FOLDER, exist_ok=True)
 
-
 @app.route("/")
 def home():
     logger.info("Home route accessed")
