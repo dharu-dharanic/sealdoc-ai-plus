@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify, send_from_directory
+
+from flask import Flask, request, jsonify, send_from_directory, render_template
 import os
 from src.services.ocr_service import extract_text_from_image, extract_text_from_pdf
 from src.services.redaction_service import redact_text, redact_file
@@ -11,10 +12,11 @@ REDACTED_FOLDER = "redacted"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(REDACTED_FOLDER, exist_ok=True)
 
+# --- FRONTEND ROUTE ---
 @app.route("/")
-def home():
-    logger.info("Home route accessed")
-    return "SealDoc AI+ running with OCR + NLP + CV redaction (rules-aware, multiple styles)!"
+def home_page():
+    logger.info("Home route accessed (frontend)")
+    return render_template("index.html")
 
 
 @app.route("/upload", methods=["POST"])
@@ -29,8 +31,11 @@ def upload_file():
             logger.warning("Upload attempt with empty filename")
             return jsonify({"error": "Empty filename"}), 400
 
-        # Get use case + redaction style from request
+        # Get use case + redaction style
         use_case = request.form.get("use_case", "default").lower()
+        if use_case == "general":
+            use_case = "default"  # Map frontend "general" to backend "default"
+
         redaction_style = request.form.get("redaction_style", "black_box").lower()
         logger.info(f"File upload started: {file.filename}, use_case={use_case}, style={redaction_style}")
 
@@ -83,15 +88,16 @@ def redact_endpoint():
 
         use_case = data.get("use_case", "default").lower()
         redaction_style = data.get("redaction_style", "black_box").lower()
-        redacted = redact_text(data["text"], use_case, redaction_style)
+        redacted_text = redact_text(data["text"], use_case, redaction_style)
 
         logger.info(f"Redaction completed for use_case={use_case}, style={redaction_style}")
 
         return jsonify({
-            "redacted_text": redacted,
+            "redacted_text": redacted_text,
             "use_case": use_case,
             "redaction_style": redaction_style
         })
+
     except Exception as e:
         logger.error(f"Error in redact_endpoint: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
@@ -111,4 +117,4 @@ def preview_file(filename):
 
 if __name__ == "__main__":
     logger.info("Starting SealDoc AI+ Flask server...")
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=5000)

@@ -1,7 +1,20 @@
 {
   "healthcare": {
-     "redact": ["EMAIL", "PHONE", "SSN", "ADDRESS", "ID", "PERSON"],
-     "keep": ["DOCTOR", "HOSPITAL", "DIAGNOSIS"]
+    "redact": [
+      "PERSON",
+      "DATE",
+      "ADDRESS",
+      "PHONE",
+      "EMAIL",
+      "SSN",
+      "INSURANCE_ID",
+      "POLICY_ID"
+    ],
+    "keep": [
+      "DOCTOR",
+      "HOSPITAL",
+      "DIAGNOSIS"
+    ]
   },
   "education": {
     "redact": ["EMAIL", "PHONE", "SSN", "ADDRESS"],

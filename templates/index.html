@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SealDoc AI+ — Redaction Demo</title>
+
+  <!-- Bootstrap (CDN) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --brand: #0b5ed7;
+      --muted: #6c757d;
+    }
+    body {
+      background: #f4f6fb;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color: #222;
+      padding: 24px 12px;
+    }
+    .card {
+      border-radius: 12px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+    }
+    .preview-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 12px;
+      border: 1px solid #e9ecef;
+      max-height: 320px;
+      overflow: auto;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+      font-size: 14px;
+    }
+    .small-muted { color: var(--muted); font-size: .9rem; }
+    .btn-brand { background: var(--brand); color: #fff; }
+    .link-row a { margin-right: .5rem; }
+    .file-info { font-size: .9rem; color: var(--muted); }
+    .spinner { display: inline-block; width: 1rem; height: 1rem; border: 2px solid rgba(0,0,0,0.08); border-top-color: var(--brand); border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -3px; }
+    @keyframes spin { to { transform: rotate(360deg);} }
+  </style>
+</head>
+<body>
+  <div class="container" style="max-width:1000px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">🔒 SealDoc AI+ — Document Redactor</h2>
+      <small class="small-muted">Offline-friendly · Open-source stack</small>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <form id="uploadForm" enctype="multipart/form-data">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label"><b>Document</b></label>
+            <input class="form-control" type="file" name="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg" required>
+            <div class="file-info mt-1" id="fileInfo">Supported: PDF, PNG, JPG</div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label"><b>Use case</b></label>
+            <select class="form-select" name="use_case" id="useCase">
+              <option value="default">General</option>
+              <option value="healthcare">Healthcare</option>
+              <option value="education">Education</option>
+              <option value="finance">Finance</option>
+              <option value="government">Government</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label"><b>Redaction style</b></label>
+            <select class="form-select" name="redaction_style" id="style">
+              <option value="black_box">Black box</option>
+              <option value="stars">Stars</option>
+              <option value="brackets">[REDACTED]</option>
+              <option value="blur">Blur (images)</option>
+              <option value="pixelate">Pixelate (images)</option>
+            </select>
+          </div>
+
+          <div class="col-12 text-end mt-2">
+            <button id="submitBtn" type="submit" class="btn btn-brand">Redact Document</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <h5>Original text</h5>
+        <div id="originalBox" class="preview-box">Upload a file to see extracted text here.</div>
+      </div>
+
+      <div class="col-md-6">
+        <h5>Redacted text</h5>
+        <div id="redactedBox" class="preview-box">Redacted output will appear here.</div>
+      </div>
+    </div>
+
+    <div class="mt-3 link-row" id="links" style="display:none;">
+      <a id="downloadLink" class="btn btn-success" href="#" target="_blank"> Download redacted file</a>
+      <a id="previewLink" class="btn btn-outline-secondary" href="#" target="_blank"> Open preview</a>
+      <button id="clearBtn" class="btn btn-light">Clear</button>
+    </div>
+
+    <div class="mt-3">
+      <small class="small-muted">Tip: Use the correct use-case to enable sector-specific redaction rules.</small>
+    </div>
+  </div>
+
+  <!-- JS (jQuery used for brevity) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    const $form = $("#uploadForm");
+    const $original = $("#originalBox");
+    const $redacted = $("#redactedBox");
+    const $links = $("#links");
+    const $download = $("#downloadLink");
+    const $preview = $("#previewLink");
+    const $submit = $("#submitBtn");
+    const $fileInfo = $("#fileInfo");
+    const $clear = $("#clearBtn");
+
+    $form.on("submit", function(e) {
+      e.preventDefault();
+      $links.hide();
+      $original.text("Processing...");
+      $redacted.text("");
+      $submit.prop("disabled", true).text("Processing  ").append('<span class="spinner"></span>');
+
+      const fd = new FormData(this);
+
+      $.ajax({
+        url: "/upload",
+        method: "POST",
+        data: fd,
+        processData: false,
+        contentType: false,
+        timeout: 120000, // 2 minutes for heavy files
+        success: function(resp) {
+          $submit.prop("disabled", false).text("Redact Document");
+          $original.text(resp.original_text || "(no text extracted)");
+          $redacted.text(resp.redacted_text || "(nothing redacted)");
+          $download.attr("href", resp.redacted_file_url);
+          $preview.attr("href", resp.preview_url);
+          $links.show();
+        },
+        error: function(xhr) {
+          $submit.prop("disabled", false).text("Redact Document");
+          let msg = "Unknown error";
+          try { msg = xhr.responseJSON?.error || xhr.responseText || msg } catch(e){ }
+          alert("Error: " + msg);
+          $original.text("");
+          $redacted.text("");
+        }
+      });
+    });
+
+    $clear.on("click", function(){
+      $original.text("Upload a file to see extracted text here.");
+      $redacted.text("Redacted output will appear here.");
+      $links.hide();
+      $("#fileInput").val("");
+    });
+
+    // show filename
+    $("#fileInput").on("change", function(){
+      const f = this.files && this.files[0];
+      if (!f) { $fileInfo.text("Supported: PDF, PNG, JPG"); return; }
+      $fileInfo.text(`Selected: ${f.name} — ${Math.round(f.size/1024)} KB`);
+    });
+  </script>
+</body>
+</html>
+
+

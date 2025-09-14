@@ -1,3 +1,4 @@
+
 import cv2
 import pytesseract
 from src.services.nlp_service import detect_sensitive_entities
@@ -11,26 +12,6 @@ if os.path.exists(RULES_FILE):
         ALL_RULES = json.load(f)
 else:
     ALL_RULES = {"default": {"redact": ["EMAIL", "PHONE", "SSN"], "keep": []}}
-
-
-def detect_sensitive_regions(image_path):
-    """
-    Detect text regions in an image using pytesseract + OpenCV.
-    Returns bounding boxes of detected text.
-    """
-    image = cv2.imread(image_path)
-    if image is None:
-        raise ValueError(f"Could not load image: {image_path}")
-
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    data = pytesseract.image_to_data(gray, output_type=pytesseract.Output.DICT)
-
-    boxes = []
-    for i in range(len(data["text"])):
-        if int(data["conf"][i]) > 60:  # confidence threshold
-            x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
-            boxes.append((x, y, w, h, data["text"][i]))
-    return boxes
 
 
 def apply_redaction(image, x, y, w, h, style="black_box"):
@@ -51,12 +32,8 @@ def apply_redaction(image, x, y, w, h, style="black_box"):
         pixelated = cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
         image[y:y+h, x:x+w] = pixelated
 
-    elif style == "brackets":
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 0), -1)
-        cv2.putText(image, "[REDACTED]", (x, y+h-5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255,255,255), 2)
-
     return image
+
 
 def redact_image(image_path, output_path, use_case="default", style="black_box"):
     """
